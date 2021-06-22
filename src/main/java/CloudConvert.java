@@ -7,11 +7,9 @@ import com.cloudconvert.dto.request.UrlImportRequest;
 import com.cloudconvert.dto.response.JobResponse;
 import com.cloudconvert.dto.response.TaskResponse;
 import com.google.common.collect.ImmutableMap;
+import org.apache.tika.io.IOUtils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,7 +21,21 @@ public class CloudConvert {
 
     public CloudConvert() throws IOException {}
 
-    public void convert(File inputFile, File convertedOutputFile, String inputType, String outputType, HashMap<String, String> inOptions) throws IOException, URISyntaxException {
+
+    /**
+     *  Conversion Function for a file on local Storage
+     *
+     * @param inputFile File we want to Convert
+     * @param convertedOutputFile Converted File
+     * @param inputType Extension of input file
+     * @param outputType Extension of output file
+     * @param inOptions Custom Options for Conversion
+     * @throws IOException
+     * @throws URISyntaxException
+     * @throws InterruptedException
+     */
+    public void convert(final File inputFile, File convertedOutputFile, String inputType, String outputType,
+                        HashMap<String, String> inOptions) throws IOException, URISyntaxException, InterruptedException {
 
         // Upload file using import/upload task
         final TaskResponse uploadImportTaskResponse = cloudConvertClient.importUsing().upload(new UploadImportRequest(), inputFile).getBody();
@@ -31,6 +43,7 @@ public class CloudConvert {
         // Wait for import/upload task to be finished
         final TaskResponse waitUploadImportTaskResponse = cloudConvertClient.tasks().wait(uploadImportTaskResponse.getId()).getBody();
 
+        // Create a job to Convert and Export Video
         final JobResponse createJobResponse = cloudConvertClient.jobs().create(
                 ImmutableMap.of(
                         "ConvertVideo", new ConvertFilesTaskRequest()
@@ -41,19 +54,28 @@ public class CloudConvert {
                 )
         ).getBody();
 
-        //Get a job id
-        final String jobId = createJobResponse.getId();
+        //Get Export TaskResponse
+        final TaskResponse waitUrlExportTaskResponse = cloudConvertClient.tasks().wait(createJobResponse.getTasks().get(1).getId()).getBody();
 
-        // Wait for a job completion
-        final JobResponse waitJobResponse = cloudConvertClient.jobs().wait(jobId).getBody();
+        final String exportUrl = waitUrlExportTaskResponse.getResult().getFiles().get(0).get("url");
+        final String filename = waitUrlExportTaskResponse.getResult().getFiles().get(0).get("filename");
 
-        // Get an export/url task id
-        final String exportUrlTaskId = waitJobResponse.getTasks().stream().filter(
-                taskResponse -> taskResponse.getName().equals("ExportVideo")).findFirst().get().getId();
 
+        // Export into file
+        InputStream convertedFile = cloudConvertClient.files().download(exportUrl).getBody();
+        OutputStream outputStream = new FileOutputStream(new File(filename));
+        IOUtils.copy(convertedFile, outputStream);
+
+        convertedOutputFile = new File(filename);
+
+        // Clean-up
+        convertedFile.close();
+        outputStream.close();
     }
 
-    public static void main(String args[]) throws IOException, URISyntaxException {
+
+
+    public static void main(String args[]) throws IOException, URISyntaxException, InterruptedException {
 
         File input = new File("testVideo.webm");
         File output = null;
