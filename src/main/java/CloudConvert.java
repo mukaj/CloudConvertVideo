@@ -21,6 +21,51 @@ public class CloudConvert {
 
     public CloudConvert() throws IOException {}
 
+    /**
+     *  Conversion Function for a file from an URL
+     *
+     * @param inputFileURL URL of the file we want to Convert
+     * @param convertedOutputFile Converted File
+     * @param inputType Extension of input file
+     * @param outputType Extension of output file
+     * @param inOptions Custom Options for Conversion
+     * @throws IOException
+     * @throws URISyntaxException
+     * @throws InterruptedException
+     */
+    public void convert(final String inputFileURL, File convertedOutputFile, String inputType, String outputType,
+                        HashMap<String, String> inOptions) throws IOException, URISyntaxException, InterruptedException {
+
+        // Create a job to Convert and Export Video
+        final JobResponse createJobResponse = cloudConvertClient.jobs().create(
+                ImmutableMap.of(
+                        "ImportVideo", new UrlImportRequest().setUrl(inputFileURL),
+                        "ConvertVideo", new ConvertFilesTaskRequest()
+                                .setInput("ImportVideo")
+                                .setInputFormat(inputType)
+                                .setOutputFormat(outputType),
+                        "ExportVideo", new UrlExportRequest().setInput("ConvertVideo")
+                )
+        ).getBody();
+
+        //Get Export TaskResponse
+        final TaskResponse waitUrlExportTaskResponse = cloudConvertClient.tasks().wait(createJobResponse.getTasks().get(2).getId()).getBody();
+
+        final String exportUrl = waitUrlExportTaskResponse.getResult().getFiles().get(0).get("url");
+        final String filename = waitUrlExportTaskResponse.getResult().getFiles().get(0).get("filename");
+
+
+        // Export into file
+        InputStream convertedFile = cloudConvertClient.files().download(exportUrl).getBody();
+        OutputStream outputStream = new FileOutputStream(new File(filename));
+        IOUtils.copy(convertedFile, outputStream);
+
+        convertedOutputFile = new File(filename);
+
+        // Clean-up
+        convertedFile.close();
+        outputStream.close();
+    }
 
     /**
      *  Conversion Function for a file on local Storage
@@ -82,7 +127,7 @@ public class CloudConvert {
 
         CloudConvert skr = new CloudConvert();
 
-        skr.convert(input,output,"webm", "mp4", null);
+        skr.convert("https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4",output,"mp4", "webm", null);
 
         return;
     }
