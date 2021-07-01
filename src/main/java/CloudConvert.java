@@ -34,7 +34,7 @@ public class CloudConvert {
      * @throws InterruptedException
      */
     public void convert(final String inputFileURL, File convertedOutputFile, String inputType, String outputType,
-                        HashMap<String, String> inOptions) throws IOException, URISyntaxException, InterruptedException {
+                        final String outputName, HashMap<String, String> inOptions) throws IOException, URISyntaxException, InterruptedException {
 
         // Create a job to Convert and Export Video
         final JobResponse createJobResponse = cloudConvertClient.jobs().create(
@@ -52,20 +52,29 @@ public class CloudConvert {
         final TaskResponse waitUrlExportTaskResponse = cloudConvertClient.tasks().wait(createJobResponse.getTasks().get(2).getId()).getBody();
 
         final String exportUrl = waitUrlExportTaskResponse.getResult().getFiles().get(0).get("url");
-        final String filename = waitUrlExportTaskResponse.getResult().getFiles().get(0).get("filename");
-
 
         // Export into file
         InputStream convertedFile = cloudConvertClient.files().download(exportUrl).getBody();
-        OutputStream outputStream = new FileOutputStream(new File(filename));
-        IOUtils.copy(convertedFile, outputStream);
+        OutputStream outputStream = null;
 
-        convertedOutputFile = new File(filename);
+        // Naming the converted file
+        if(outputName.isEmpty() || outputName == null) {
+            /* If there was no name given, or a blank name given at the func. arguments
+            it will get the origial name of the file */
+            final String filename = waitUrlExportTaskResponse.getResult().getFiles().get(0).get("filename");
+            outputStream = new FileOutputStream(new File(filename));
+        }
+        else {
+            outputStream = new FileOutputStream(new File(outputName.concat(".").concat(outputType)));
+        }
+
+        IOUtils.copy(convertedFile, outputStream);
 
         // Clean-up
         convertedFile.close();
         outputStream.close();
     }
+
 
     /**
      *  Conversion Function for a file on local Storage
@@ -80,7 +89,7 @@ public class CloudConvert {
      * @throws InterruptedException
      */
     public void convert(final File inputFile, File convertedOutputFile, String inputType, String outputType,
-                        HashMap<String, String> inOptions) throws IOException, URISyntaxException, InterruptedException {
+                        final String outputName, HashMap<String, String> inOptions) throws IOException, URISyntaxException, InterruptedException {
 
         // Upload file using import/upload task
         final TaskResponse uploadImportTaskResponse = cloudConvertClient.importUsing().upload(new UploadImportRequest(), inputFile).getBody();
@@ -103,15 +112,24 @@ public class CloudConvert {
         final TaskResponse waitUrlExportTaskResponse = cloudConvertClient.tasks().wait(createJobResponse.getTasks().get(1).getId()).getBody();
 
         final String exportUrl = waitUrlExportTaskResponse.getResult().getFiles().get(0).get("url");
-        final String filename = waitUrlExportTaskResponse.getResult().getFiles().get(0).get("filename");
-
 
         // Export into file
         InputStream convertedFile = cloudConvertClient.files().download(exportUrl).getBody();
-        OutputStream outputStream = new FileOutputStream(new File(filename));
-        IOUtils.copy(convertedFile, outputStream);
+        OutputStream outputStream = null;
 
-        convertedOutputFile = new File(filename);
+        // Naming the converted file
+        if(outputName.isEmpty() || outputName == null) {
+            /* If there was no name given, or a blank name given at the func. arguments
+            it will get the origial name of the file */
+            final String filename = waitUrlExportTaskResponse.getResult().getFiles().get(0).get("filename");
+            outputStream = new FileOutputStream(new File(filename));
+        }
+        else {
+            outputStream = new FileOutputStream(new File(outputName));
+        }
+
+
+        IOUtils.copy(convertedFile, outputStream);
 
         // Clean-up
         convertedFile.close();
@@ -119,15 +137,14 @@ public class CloudConvert {
     }
 
 
-
     public static void main(String args[]) throws IOException, URISyntaxException, InterruptedException {
 
-        File input = new File("testVideo.webm");
+        File input = new File("testVideo.mp4");
         File output = null;
 
-        CloudConvert skr = new CloudConvert();
+        CloudConvert convertClient = new CloudConvert();
 
-        skr.convert("https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4",output,"mp4", "webm", null);
+        convertClient.convert("http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",output,"mp4", "webm", "convertedFile", null);
 
         return;
     }
