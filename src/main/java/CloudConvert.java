@@ -21,6 +21,13 @@ public class CloudConvert {
 
     public CloudConvert() throws IOException {}
 
+    private ConvertFilesTaskRequest setProperties(ConvertFilesTaskRequest task, HashMap<String, String> properties) {
+        properties.forEach((key, value) ->
+                task.setProperty(key, value));
+
+        return task;
+    }
+
     /**
      *  Conversion Function for a file from an URL
      *
@@ -36,17 +43,21 @@ public class CloudConvert {
     public void convert(final String inputFileURL, File convertedOutputFile, String inputType, String outputType,
                         final String outputName, HashMap<String, String> inOptions) throws IOException, URISyntaxException, InterruptedException {
 
+        //Creating ImmutableMap for the Job
+        ImmutableMap jobMap = ImmutableMap.of(
+                "ImportVideo", new UrlImportRequest().setUrl(inputFileURL),
+                "ConvertVideo", new ConvertFilesTaskRequest()
+                        .setInput("ImportVideo")
+                        .setInputFormat(inputType)
+                        .setOutputFormat(outputType),
+                "ExportVideo", new UrlExportRequest().setInput("ConvertVideo")
+        );
+        // Setting Properties
+        ConvertFilesTaskRequest conversionTask = (ConvertFilesTaskRequest) jobMap.get("ConvertVideo");
+        conversionTask = setProperties((ConvertFilesTaskRequest) conversionTask, inOptions);
+
         // Create a job to Convert and Export Video
-        final JobResponse createJobResponse = cloudConvertClient.jobs().create(
-                ImmutableMap.of(
-                        "ImportVideo", new UrlImportRequest().setUrl(inputFileURL),
-                        "ConvertVideo", new ConvertFilesTaskRequest()
-                                .setInput("ImportVideo")
-                                .setInputFormat(inputType)
-                                .setOutputFormat(outputType),
-                        "ExportVideo", new UrlExportRequest().setInput("ConvertVideo")
-                )
-        ).getBody();
+        final JobResponse createJobResponse = (JobResponse) cloudConvertClient.jobs().create(jobMap).getBody();
 
         //Get Export TaskResponse
         final TaskResponse waitUrlExportTaskResponse = cloudConvertClient.tasks().wait(createJobResponse.getTasks().get(2).getId()).getBody();
@@ -97,16 +108,21 @@ public class CloudConvert {
         // Wait for import/upload task to be finished
         final TaskResponse waitUploadImportTaskResponse = cloudConvertClient.tasks().wait(uploadImportTaskResponse.getId()).getBody();
 
+        // Creating ImmutableMap for the Job
+        ImmutableMap jobMap = ImmutableMap.of(
+                "ConvertVideo", new ConvertFilesTaskRequest()
+                        .setInput(waitUploadImportTaskResponse.getId())
+                        .setInputFormat(inputType)
+                        .setOutputFormat(outputType),
+                "ExportVideo", new UrlExportRequest().setInput("ConvertVideo")
+        );
+
+        // Setting Properties
+        ConvertFilesTaskRequest conversionTask = (ConvertFilesTaskRequest) jobMap.get("ConvertVideo");
+        conversionTask = setProperties((ConvertFilesTaskRequest) conversionTask, inOptions);
+
         // Create a job to Convert and Export Video
-        final JobResponse createJobResponse = cloudConvertClient.jobs().create(
-                ImmutableMap.of(
-                        "ConvertVideo", new ConvertFilesTaskRequest()
-                                .setInput(waitUploadImportTaskResponse.getId())
-                                .setInputFormat(inputType)
-                                .setOutputFormat(outputType),
-                        "ExportVideo", new UrlExportRequest().setInput("ConvertVideo")
-                )
-        ).getBody();
+        final JobResponse createJobResponse = (JobResponse) cloudConvertClient.jobs().create(jobMap).getBody();
 
         //Get Export TaskResponse
         final TaskResponse waitUrlExportTaskResponse = cloudConvertClient.tasks().wait(createJobResponse.getTasks().get(1).getId()).getBody();
@@ -139,13 +155,21 @@ public class CloudConvert {
 
     public static void main(String args[]) throws IOException, URISyntaxException, InterruptedException {
 
-        File input = new File("testVideo.mp4");
         File output = null;
 
         CloudConvert convertClient = new CloudConvert();
 
-        convertClient.convert("http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",output,"mp4", "webm", "convertedFile", null);
+        HashMap<String, String> testmap = new HashMap<String, String>();
+        // Put Values into the map to add to the converted file
+        testmap.put("height", "412");
+        testmap.put("volume", "0");
 
+        // Uncomment to Test url
+        //convertClient.convert("http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",output,"mp4", "webm", "convertedFile",testmap);
+
+        // Uncomment to Test LocalFile
+        //File input = new File("testVideo.mp4");
+        //convertClient.convert(input,output,"mp4", "webm", "converted.webm",testmap);
         return;
     }
 }
