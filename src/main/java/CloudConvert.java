@@ -1,19 +1,13 @@
 import com.cloudconvert.client.CloudConvertClient;
 import com.cloudconvert.client.setttings.StringSettingsProvider;
-import com.cloudconvert.dto.request.ConvertFilesTaskRequest;
-import com.cloudconvert.dto.request.UploadImportRequest;
-import com.cloudconvert.dto.request.UrlExportRequest;
-import com.cloudconvert.dto.request.UrlImportRequest;
+import com.cloudconvert.dto.request.*;
 import com.cloudconvert.dto.response.JobResponse;
 import com.cloudconvert.dto.response.TaskResponse;
-import com.cloudconvert.dto.result.Result;
 import com.google.common.collect.ImmutableMap;
 import org.apache.tika.io.IOUtils;
 
 import java.io.*;
 import java.net.URISyntaxException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 
 public class CloudConvert {
@@ -23,99 +17,30 @@ public class CloudConvert {
     public CloudConvert() throws IOException {}
 
     /**
-     *
+     * Set properties for conversion task
      * @param task Conversion task
-     * @param properties HashMap for all the conversion settings
+     * @param inOptions HashMap for all the conversion options
      * @return
      */
-    private ConvertFilesTaskRequest setProperties(ConvertFilesTaskRequest task, HashMap<String, String> properties) {
-        properties.forEach((key, value) ->
+    private ConvertFilesTaskRequest setProperties(ConvertFilesTaskRequest task, HashMap<String, String> inOptions) {
+        inOptions.forEach((key, value) ->
                 task.setProperty(key, value));
 
         return task;
     }
 
-    /**
-     *  Conversion Function for a file from an URL
-     *
-     * @param inputFileURL URL of the file we want to Convert
-     * @param convertedOutputFile Converted File
-     * @param inputType Extension of input file
-     * @param outputType Extension of output file
-     * @param outputName Name of output file (MUST NOT INCLUDE EXTENSION)
-     * @param inOptions Custom Options for Conversion
-     * @throws IOException
-     * @throws URISyntaxException
-     * @throws InterruptedException
-     */
-    public void convert(final String inputFileURL, File convertedOutputFile, String outputType,
-                        final String outputName, HashMap<String, String> inOptions) throws IOException, URISyntaxException, InterruptedException {
-
-        // Creating the convert task request and applying the options to it.
-        final ConvertFilesTaskRequest conversionTask = setProperties(new ConvertFilesTaskRequest(), inOptions);
-
-        // Create a job to import, convert and export the video
-        final JobResponse createJobResponse = (JobResponse) cloudConvertClient.jobs().create(
-                ImmutableMap.of(
-                "ImportVideo", new UrlImportRequest().setUrl(inputFileURL),
-                "ConvertVideo", conversionTask
-                        .setFilename(outputName.concat(".").concat(outputType))
-                        .setInput("ImportVideo")
-                        .setOutputFormat(outputType),
-                "ExportVideo", new UrlExportRequest().setInput("ConvertVideo")
-        )).getBody();
-
-        //Get Export TaskResponse
-        final TaskResponse waitUrlExportTaskResponse = cloudConvertClient.tasks().wait(createJobResponse.getTasks().get(2).getId()).getBody();
-
-        final String exportUrl = waitUrlExportTaskResponse.getResult().getFiles().get(0).get("url");
-
-        // Export into file
-        InputStream convertedFile = cloudConvertClient.files().download(exportUrl).getBody();
-        OutputStream outputStream = null;
-
-        // Creating an output stream to Save the converted file
-        final String filename = waitUrlExportTaskResponse.getResult().getFiles().get(0).get("filename");
-        outputStream = new FileOutputStream(new File(filename));
-
-        IOUtils.copy(convertedFile, outputStream);
-
-        // Clean-up
-        convertedFile.close();
-        outputStream.close();
-    }
-
-
-    /**
-     *  Conversion Function for a file on local Storage
-     *
-     * @param inputFile File we want to Convert
-     * @param convertedOutputFile Converted File
-     * @param outputType Extension of output file
-     * @param outputName Name of output file (MUST NOT INCLUDE EXTENSION)
-     * @param inOptions Custom Options for Conversion
-     * @throws IOException
-     * @throws URISyntaxException
-     * @throws InterruptedException
-     */
-    public void convert(final File inputFile, File convertedOutputFile, String outputType,
-                        final String outputName, HashMap<String, String> inOptions) throws IOException, URISyntaxException, InterruptedException {
-
-        // Upload file using import/upload task
-        final TaskResponse uploadImportTaskResponse = cloudConvertClient.importUsing().upload(new UploadImportRequest(), inputFile).getBody();
-
+    private void convertFile(String inputID, String outputType, HashMap<String, String> inOptions) throws IOException, URISyntaxException {
         // Creating the convert task request and applying the options to it.
         final ConvertFilesTaskRequest conversionTask = setProperties(new ConvertFilesTaskRequest(), inOptions);
 
         // Create a job to Convert and Export Video
         final JobResponse createJobResponse = cloudConvertClient.jobs().create(
-            ImmutableMap.of(
-                    "ConvertVideo", conversionTask
-                            .setFilename(outputName.concat(".").concat(outputType))
-                            .setInput(uploadImportTaskResponse.getId())
-                            .setOutputFormat(outputType),
-                    "ExportVideo", new UrlExportRequest().setInput("ConvertVideo")
-            )).getBody();
+                ImmutableMap.of(
+                        "ConvertVideo", conversionTask
+                                .setInput(inputID)
+                                .setOutputFormat(outputType),
+                        "ExportVideo", new UrlExportRequest().setInput("ConvertVideo")
+                )).getBody();
 
         //Get Export TaskResponse
         final TaskResponse waitUrlExportTaskResponse = cloudConvertClient.tasks().wait(createJobResponse.getTasks().get(1).getId()).getBody();
@@ -138,24 +63,48 @@ public class CloudConvert {
         outputStream.close();
     }
 
+    public void convertHTML5Video(File inputFile, HashMap<String, String> inOptions) throws IOException, URISyntaxException {
+        final TaskResponse uploadImportTaskResponse = cloudConvertClient.importUsing().upload(new UploadImportRequest(), inputFile).getBody();
+        final String fileType = inputFile.getName().substring(inputFile.getName().lastIndexOf('.') + 1);
+
+        if(!fileType.equals("mp4")) {
+            convertFile(uploadImportTaskResponse.getId(), "mp4", inOptions);
+        }
+        if(!fileType.equals("webm")) {
+            convertFile(uploadImportTaskResponse.getId(), "webm", inOptions);
+        }
+        // CloudConvert doesn't Support conversions to ogv
+    }
+
+    public void convertHTML5Video(String inputURL, HashMap<String, String> inOptions) throws IOException, URISyntaxException {
+        final TaskResponse uploadImportTaskResponse = cloudConvertClient.importUsing().url(new UrlImportRequest().setUrl(inputURL)).getBody();
+        final String fileType = inputURL.substring(inputURL.lastIndexOf('.') + 1);
+
+        if(!fileType.equals("mp4")) {
+            convertFile(uploadImportTaskResponse.getId(), "mp4", inOptions);
+        }
+        if(!fileType.equals("webm")) {
+            convertFile(uploadImportTaskResponse.getId(), "webm", inOptions);
+        }
+        // CloudConvert doesn't Support conversions to ogv
+    }
 
     public static void main(String args[]) throws IOException, URISyntaxException, InterruptedException {
 
-        File output = null;
-
         CloudConvert convertClient = new CloudConvert();
 
-        HashMap<String, String> testmap = new HashMap<String, String>();
-        // Put Values into the map to add to the converted file
-        testmap.put("height", "412");
-        testmap.put("volume", "0");
+        HashMap<String, String> optionsMap = new HashMap<String, String>();
+        optionsMap.put("volume", "0");
 
         // Uncomment to Test url
-        convertClient.convert("http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",output, "webm", "convertedFile",testmap);
+        //convertClient.convertHTML5Video("https://www.engr.colostate.edu/me/facil/dynamics/files/drop.avi", optionsMap);
 
         // Uncomment to Test LocalFile
-        File input = new File("testVideo.mp4");
-        convertClient.convert(input,output, "webm", "converted",testmap);
+        /*
+        File input = new File("testVideo.avi");
+        convertClient.convertHTML5Video(input, optionsMap);
+        */
+
         return;
     }
 }
