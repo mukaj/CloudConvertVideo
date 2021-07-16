@@ -89,21 +89,56 @@ public class CloudConvert {
         // CloudConvert doesn't Support conversions to ogv
     }
 
+    public void convertHTML5Audio(File inputFile, HashMap<String, String> inOptions) throws IOException, URISyntaxException {
+        final TaskResponse uploadImportTaskResponse = cloudConvertClient.importUsing().upload(new UploadImportRequest(), inputFile).getBody();
+        final String fileType = inputFile.getName().substring(inputFile.getName().lastIndexOf('.') + 1);
+
+        if(!fileType.equals("aac")) {
+            convertFile(uploadImportTaskResponse.getId(), "aac", inOptions);
+        }
+        if(!fileType.equals("mp3")) {
+            convertFile(uploadImportTaskResponse.getId(), "mp3", inOptions);
+        }
+        if(!fileType.equals("wav")) {
+            convertFile(uploadImportTaskResponse.getId(), "wav", inOptions);
+        }
+        // CloudConvert doesn't Support conversions to oga
+    }
+
+    public void convertHTML5Audio(String inputURL, HashMap<String, String> inOptions) throws IOException, URISyntaxException {
+        final TaskResponse uploadImportTaskResponse = cloudConvertClient.importUsing().url(new UrlImportRequest().setUrl(inputURL)).getBody();
+        final String fileType = inputURL.substring(inputURL.lastIndexOf('.') + 1);
+
+        if(!fileType.equals("aac")) {
+            convertFile(uploadImportTaskResponse.getId(), "aac", inOptions);
+        }
+        if(!fileType.equals("mp3")) {
+            convertFile(uploadImportTaskResponse.getId(), "mp3", inOptions);
+        }
+        if(!fileType.equals("wav")) {
+            convertFile(uploadImportTaskResponse.getId(), "wav", inOptions);
+        }
+        // CloudConvert doesn't Support conversions to oga
+    }
+
     public static void main(String args[]) throws IOException, URISyntaxException, InterruptedException {
 
         CloudConvert convertClient = new CloudConvert();
 
         HashMap<String, String> optionsMap = new HashMap<String, String>();
-        optionsMap.put("volume", "0");
+        optionsMap.put("volume", "0.5");
 
         // Uncomment to Test url
         //convertClient.convertHTML5Video("https://www.engr.colostate.edu/me/facil/dynamics/files/drop.avi", optionsMap);
+        //convertClient.convertHTML5Audio("http://www.lindberg.no/hires/mqa-cd-2018/2L-145_01_stereo.mqacd.mqa.flac", optionsMap);
 
         // Uncomment to Test LocalFile
-        /*
-        File input = new File("testVideo.avi");
-        convertClient.convertHTML5Video(input, optionsMap);
-        */
+
+        //File testVideo = new File("testfiles/testVideo.avi");
+        //convertClient.convertHTML5Video(testVideo, optionsMap);
+
+        //File testAudio = new File("testfiles/testAudio.flac");
+        //convertClient.convertHTML5Audio(testAudio, optionsMap);
 
         return;
     }
