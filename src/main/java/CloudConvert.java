@@ -11,6 +11,9 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import ws.schild.jave.*;
 
@@ -155,22 +158,25 @@ public class CloudConvert {
         HashMap<String, String> optionsMap = new HashMap<String, String>();
         optionsMap.put("volume", "0.5");
 
-        //File Conversions
+        ExecutorService conversionTaskService = Executors.newCachedThreadPool();
+
+        //File Audio Conversion
         File testAudio = new File("testfiles/notVideo.mp4");
+        conversionTaskService.execute(Helper.addFile(testAudio, optionsMap, convertClient));
+        //URL Audio Conversion
+        conversionTaskService.execute(
+                Helper.addFile("http://www.lindberg.no/hires/mqa-cd-2018/2L-145_01_stereo.mqacd.mqa.flac",optionsMap,convertClient));
+        //File Video Conversion
+        File testVideo = new File("testfiles/notVideo.avi");
+        conversionTaskService.execute(Helper.addFile(testAudio, optionsMap, convertClient));
+        //URL Video Conversion
+        conversionTaskService.execute(
+                Helper.addFile("https://www.engr.colostate.edu/me/facil/dynamics/files/drop.avi",optionsMap,convertClient));
 
-        convertClient.convertFile(testAudio, optionsMap);
-
-        //Uncomment to Test url
-        //convertClient.convertHTML5Video("https://www.engr.colostate.edu/me/facil/dynamics/files/drop.avi", optionsMap);
-        //convertClient.convertHTML5Audio("http://www.lindberg.no/hires/mqa-cd-2018/2L-145_01_stereo.mqacd.mqa.flac", optionsMap);
-
-        // Uncomment to Test LocalFile
-
-        //File testVideo = new File("testfiles/testVideo.avi");
-        //convertClient.convertHTML5Video(testVideo, optionsMap);
-
-        //File testAudio = new File("testfiles/testAudio.flac");
-        //convertClient.convertHTML5Audio(testAudio, optionsMap);
+        // Start Tasks
+        conversionTaskService.shutdown();
+        // Wait for Task endings
+        conversionTaskService.awaitTermination(60, TimeUnit.MINUTES);
 
         return;
     }
