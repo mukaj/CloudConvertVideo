@@ -3,8 +3,6 @@ import ws.schild.jave.MultimediaInfo;
 import ws.schild.jave.MultimediaObject;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashMap;
 
@@ -17,7 +15,12 @@ public class Helper {
      */
     public static boolean hasVideo(File originalFile) throws EncoderException {
         MultimediaInfo vidInfo = new MultimediaObject(originalFile).getInfo();
-        return (vidInfo.getVideo() != null);
+        if(vidInfo.getVideo() == null)
+            return false;
+        else if(vidInfo.getVideo().getBitRate() < 0)
+            return false;
+        else
+            return true;
     }
 
     /**
@@ -28,7 +31,12 @@ public class Helper {
      */
     public static boolean hasVideo(URL originalFile) throws EncoderException {
         MultimediaInfo vidInfo = new MultimediaObject(originalFile).getInfo();
-        return (vidInfo.getVideo() != null);
+        if(vidInfo.getVideo() == null)
+            return false;
+        else if(vidInfo.getVideo().getBitRate() < 0)
+            return false;
+        else
+            return true;
     }
 
     public static Runnable addFile(File originalFile, HashMap<String, String> optionsMap, CloudConvert convertClient) {

@@ -103,6 +103,10 @@ public class CloudConvert {
         final TaskResponse uploadImportTaskResponse = cloudConvertClient.importUsing().upload(new UploadImportRequest(), inputFile).getBody();
         final String fileType = inputFile.getName().substring(inputFile.getName().lastIndexOf('.') + 1);
 
+        // The we need to make CloudConvert think that the format is m4a because otherwise it tries to convert it as a video
+        if(fileType.equals("mp4"))
+            inOptions.put("input_format", "m4a");
+
         if(!fileType.equals("aac")) {
             startConversion(uploadImportTaskResponse.getId(), "aac", inOptions);
         }
@@ -118,6 +122,10 @@ public class CloudConvert {
     public void convertHTML5Audio(String inputURL, HashMap<String, String> inOptions) throws IOException, URISyntaxException {
         final TaskResponse uploadImportTaskResponse = cloudConvertClient.importUsing().url(new UrlImportRequest().setUrl(inputURL)).getBody();
         final String fileType = inputURL.substring(inputURL.lastIndexOf('.') + 1);
+
+        // The we need to make CloudConvert think that the format is m4a because otherwise it tries to convert it as a video
+        if(fileType.equals("mp4"))
+            inOptions.put("input_format", "m4a");
 
         if(!fileType.equals("aac")) {
             startConversion(uploadImportTaskResponse.getId(), "aac", inOptions);
@@ -167,8 +175,8 @@ public class CloudConvert {
         conversionTaskService.execute(
                 Helper.addFile("http://www.lindberg.no/hires/mqa-cd-2018/2L-145_01_stereo.mqacd.mqa.flac",optionsMap,convertClient));
         //File Video Conversion
-        File testVideo = new File("testfiles/notVideo.avi");
-        conversionTaskService.execute(Helper.addFile(testAudio, optionsMap, convertClient));
+        File testVideo = new File("testfiles/testVideo.avi");
+        conversionTaskService.execute(Helper.addFile(testVideo, optionsMap, convertClient));
         //URL Video Conversion
         conversionTaskService.execute(
                 Helper.addFile("https://www.engr.colostate.edu/me/facil/dynamics/files/drop.avi",optionsMap,convertClient));
