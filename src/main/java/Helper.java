@@ -11,13 +11,13 @@ public class Helper {
      *
      * @param originalFile Local Unconverted File
      * @return boolean (If the file is audio or not)
-     * @throws EncoderException
      */
     public static boolean hasVideo(File originalFile) throws EncoderException {
         MultimediaInfo vidInfo = new MultimediaObject(originalFile).getInfo();
         if(vidInfo.getVideo() == null)
             return false;
-        else if(vidInfo.getVideo().getBitRate() < 0)
+        // Some mp4 files have video, but it's non-existent and the bitrate is usually <= 0
+        else if(vidInfo.getVideo().getBitRate() <= 0)
             return false;
         else
             return true;
@@ -27,40 +27,34 @@ public class Helper {
      *
      * @param originalFile URL of Unconverted File
      * @return boolean (If the file is audio or not)
-     * @throws EncoderException
      */
     public static boolean hasVideo(URL originalFile) throws EncoderException {
         MultimediaInfo vidInfo = new MultimediaObject(originalFile).getInfo();
         if(vidInfo.getVideo() == null)
             return false;
-        else if(vidInfo.getVideo().getBitRate() < 0)
+        // Some mp4 files have video, but it's non-existent and the bitrate is usually <= 0
+        else if(vidInfo.getVideo().getBitRate() <= 0)
             return false;
         else
             return true;
     }
 
     public static Runnable addFile(File originalFile, HashMap<String, String> optionsMap, CloudConvert convertClient) {
-        return new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    convertClient.convertFile(originalFile, optionsMap);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+        return () -> {
+            try {
+                convertClient.convertFile(originalFile, optionsMap);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         };
     }
 
     public static Runnable addFile(String originalFile, HashMap<String, String> optionsMap, CloudConvert convertClient) {
-        return new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    convertClient.convertFile(originalFile, optionsMap);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+        return () -> {
+            try {
+                convertClient.convertFile(originalFile, optionsMap);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         };
     }

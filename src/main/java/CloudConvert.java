@@ -166,6 +166,7 @@ public class CloudConvert {
         HashMap<String, String> optionsMap = new HashMap<String, String>();
         optionsMap.put("volume", "0.5");
 
+        //Declaring Executor service that will hold all runnables for the conversions
         ExecutorService conversionTaskService = Executors.newCachedThreadPool();
 
         //File Audio Conversion
@@ -181,10 +182,12 @@ public class CloudConvert {
         conversionTaskService.execute(
                 Helper.addFile("https://www.engr.colostate.edu/me/facil/dynamics/files/drop.avi",optionsMap,convertClient));
 
-        // Start Tasks
+        // Start All Conversions
         conversionTaskService.shutdown();
-        // Wait for Task endings
+        // Wait for Task endings (waiting for 60 minutes before timeout)
         conversionTaskService.awaitTermination(60, TimeUnit.MINUTES);
+
+        System.out.println("All conversions are compleated!");
 
         return;
     }
