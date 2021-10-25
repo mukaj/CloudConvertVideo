@@ -19,7 +19,7 @@ import ws.schild.jave.*;
 
 public class CloudConvert {
     // !! Please put API Key for the code to run properly !!
-    private static final String APIKey = "";
+    private static final String APIKey = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiOTE0N2E0ZDhhZmYwZDZjZTE4ODU3NjQ2NTY3MDYwNWI0NzA4OTU5NWJlNjNmY2RiNTBjY2Y0Y2Y3ZmU3Mjc2NTJkYzNmNDU5YWFmMDU0M2QiLCJpYXQiOjE2MzUxMjkxNjcuODA4NjE2LCJuYmYiOjE2MzUxMjkxNjcuODA4NjE4LCJleHAiOjQ3OTA4MDI3NjcuNzkwOTk0LCJzdWIiOiI1MTgyNzI3MCIsInNjb3BlcyI6WyJ0YXNrLnJlYWQiLCJ0YXNrLndyaXRlIl19.A6w6bUZeDh_GlwBg74-lcmbBvzffTM9vNWG8R53Od9YN0vbLB7gz9UGXdbSq2oLzCVCiRztMvAV8Zd5PsPgF4WlZD3mQGjEtJzjUayUpgB0_o5WnyaoZxLeeT7fI1rnuTzhq9UNUa74yiKjVMXFGGNkYmWDp68mCkxUf7s7gmNYxr-CY9TFSxdwPSdes2pR98OqIypcbZGkuD3iXLUK1eGVxDvlpsQQFkZoIHYC7jktGnx4AOKRSr5sufguBuoGSXxiYaHfhZ09KkYxDLbpuYO2dd0-GvS27uTGkH2kwue01rWtB0HCwKceAtmglrlKKXwA5P8oD6NK2LMBHBax9Ai_MwHxCItcI7MLsiKIulId5Ek-Mob9HLnq-5VgHi4kxbT4zE4LiUtLhEDZoNgt-pzEV84G3EDldWAFlVr0xfZblDBD4p0lD0xBvWJgkVUcUglhDBa9b-hrcM5vEENoBrzw6pk2V1ViH3ecKEreYO-d-5brhlsUA-wMCRKi8dwR9slxdGQi0_5fUn8lW9U9VT8OvkDDO8HG7SpLpAlne0kg6eK5Rf_TUx4W3KppRAX1BCIAotJi1u5PhgXmaIR4CROU0bqjkAcECljqL_YwcsoEIMLwkIOnmNG6nWVjhNsn6O2eo74QJ8VPtYHZXaUPI29HchVAABkEAXXgOnGobD3Q";
     private final CloudConvertClient cloudConvertClient = new CloudConvertClient(new StringSettingsProvider(APIKey, "webhook-signing-secret", false));
 
     public CloudConvert() throws IOException {}
@@ -171,17 +171,17 @@ public class CloudConvert {
         ExecutorService conversionTaskService = Executors.newCachedThreadPool();
 
         //File Audio Conversion
-        File testAudio = new File("testfiles/notVideo.mp4");
-        conversionTaskService.execute(Helper.addFile(testAudio, optionsMap, convertClient));
+        //File testAudio = new File("testfiles/notVideo.mp4");
+        //conversionTaskService.execute(Helper.addFile(testAudio, optionsMap, convertClient));
         //URL Audio Conversion
         conversionTaskService.execute(
                 Helper.addFile("http://www.lindberg.no/hires/mqa-cd-2018/2L-145_01_stereo.mqacd.mqa.flac",optionsMap,convertClient));
         //File Video Conversion
-        File testVideo = new File("testfiles/testVideo.avi");
-        conversionTaskService.execute(Helper.addFile(testVideo, optionsMap, convertClient));
+        //File testVideo = new File("testfiles/testVideo.avi");
+        //conversionTaskService.execute(Helper.addFile(testVideo, optionsMap, convertClient));
         //URL Video Conversion
-        conversionTaskService.execute(
-                Helper.addFile("https://www.engr.colostate.edu/me/facil/dynamics/files/drop.avi",optionsMap,convertClient));
+        //conversionTaskService.execute(
+        //        Helper.addFile("https://www.engr.colostate.edu/me/facil/dynamics/files/drop.avi",optionsMap,convertClient));
 
         // Start All Conversions
         conversionTaskService.shutdown();
